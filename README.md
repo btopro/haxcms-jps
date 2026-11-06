@@ -8,7 +8,7 @@ Headless Authoring eXperience (HAX) is a next generation block editor that works
 
 ### Deploy to Reclaim Cloud
 1. Click [here to deploy to Reclaim Cloud](https://app.my.reclaim.cloud/?app=haxcms).
-2. The manifest downloads the latest HAXcms PHP release, enables the PHP `gd` extension, writes a one-time install token, and POSTs the admin credentials to `install.php` — all automatically.
+2. The manifest downloads the latest HAXcms PHP release, enables the PHP `gd` extension, writes a one-time install token, and POSTs the admin credentials to `install.php?op=advance` — all automatically.
 3. When the deploy finishes, the success panel shows your **Site URL**, **Username** (`admin`), and **Password**. Use those to log in.
 
 ### Manual / any hosting provider
@@ -26,11 +26,22 @@ HAXcms PHP is a flat-file CMS — drop the release in your webroot and visit `in
 
 ## Hosting Provider Integration
 The manifest writes a one-time `_installtoken.txt` file to the webroot before
-POSTing the admin credentials to `install.php`. The installer honors
+POSTing the admin credentials to `install.php?op=advance`. The installer honors
 POST-supplied `user`/`pass` only when the POST includes a matching
-`install_token` parameter (timing-safe comparison). The token file is deleted
-after a successful install so it cannot be replayed. If you are integrating
-HAXcms with a different hosting platform, follow the same pattern:
-1. Drop a `_installtoken.txt` file containing a random secret into the webroot.
-2. POST `user`, `pass`, and `install_token` (matching the file contents) to `install.php`.
-3. The installer deletes the token file after successful installation.
+`install_token` parameter (timing-safe comparison). While the token file
+exists, every installer step requires the token, so nobody else can claim the
+site first. The token file is deleted after a successful install so it cannot
+be replayed. If you are integrating HAXcms with a different hosting platform,
+follow the same pattern:
+1. Drop a `_installtoken.txt` file containing a random secret into the webroot,
+   readable by the user PHP runs as.
+2. POST `toStep=4`, `user`, `pass`, and `install_token` (matching the file
+   contents) to `install.php?op=advance`. The password must be 8+ characters
+   with at least one uppercase letter, lowercase letter, number, and symbol.
+3. Check the JSON response: a finished install returns `"step":4`; errors are
+   listed in `errors`.
+4. The installer deletes the token file after successful installation.
+
+If you drop a token file but want a person to finish setup in the browser
+instead, send them to `install.php?install_token=<token>`; the wizard stays
+locked without it.

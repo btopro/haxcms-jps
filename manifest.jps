@@ -12,7 +12,9 @@ categories:
 - apps/education
 
 globals:
-  HAX_ADMIN_PASS: ${fn.password(12)}
+  # fn.password is letters/digits only; the fixed prefix/suffix guarantee the
+  # installer's policy (upper, lower, number and symbol)
+  HAX_ADMIN_PASS: Hx-${fn.password(14)}-7
   HAX_INSTALL_TOKEN: ${fn.password(32)}
 
 nodes:
@@ -62,7 +64,13 @@ actions:
     
   setupUser:
     cmd[cp]: |-
-      curl -d "user=admin&pass=${globals.HAX_ADMIN_PASS}&install_token=${globals.HAX_INSTALL_TOKEN}" -X POST http://${env.domain}/install.php
+      # Direct install: op=advance + toStep=4 is the only request that applies
+      # POSTed credentials. grep fails the deploy if the install did not finish.
+      curl -fsS -X POST "http://${env.domain}/install.php?op=advance" \
+        --data-urlencode "toStep=4" \
+        --data-urlencode "user=admin" \
+        --data-urlencode "pass=${globals.HAX_ADMIN_PASS}" \
+        --data-urlencode "install_token=${globals.HAX_INSTALL_TOKEN}" | grep -q '"step":4'
      
 ssl: true
 skipNodeEmails: true
